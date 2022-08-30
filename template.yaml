@@ -1,0 +1,188 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  python3.9
+
+  Sample SAM Template for serverless-arch-example
+
+Parameters:
+  Environment:
+    Type: String
+    Description: AWS Environment where code is being executed (AWS_SAM_LOCAL or AWS)
+    Default: 'AWS'
+
+  DynamoDBUri:
+    Type: String
+    Description: AWS local DynamoDB instance URI (will only be used if AWSENVNAME is AWS_SAM_LOCAL)
+    Default: 'http://docker.for.mac.host.internal:8000'
+  
+  ProjectName:
+    Type: String
+    Description: 'Name of the project'
+    Default: 'serverless-arch-example'
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 120
+    MemorySize: 2048 
+    EphemeralStorage:
+      Size: 3072
+    Environment:
+      Variables:
+        ENVIRONMENT: !Ref Environment
+        DYNAMODB_DEV_URI: !Ref DynamoDBUri
+        ORDERS_TABLE_NAME: !Ref OrdersTable
+        SQS_QUEUE: !Ref OrdersQueue
+        UPLOAD_BUCKET: !Ref OrdersBucket
+
+Resources:
+  OrdersBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Join ['-', [!Sub '${ProjectName}', 'csvs']]
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteContentAfterADay
+            ExpirationInDays: 1
+            Status: Enabled
+      CorsConfiguration:
+        CorsRules:
+        - AllowedHeaders:
+            - "*"
+          AllowedMethods:
+            - GET
+            - PUT
+            - POST
+            - DELETE
+            - HEAD
+          AllowedOrigins:
+            - "*"
+  OrdersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Join ['-', [!Sub '${ProjectName}', 'orders']]
+      AttributeDefinitions:
+        - AttributeName: request_id
+          AttributeType: S        
+      KeySchema:
+        - AttributeName: request_id
+          KeyType: HASH     
+      ProvisionedThroughput:
+        ReadCapacityUnits: 3
+        WriteCapacityUnits: 3
+  OrdersQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Join ['-', [!Sub '${ProjectName}', 'orders']]
+      VisibilityTimeout: 120  # must be same as lambda timeout
+
+  CreateFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      PackageType: Image
+      ImageConfig:
+        Command:
+          - create.lambda_handler
+      Architectures:
+        - x86_64
+      Events:
+        CreateAPI:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /example/create
+            Method: post
+      Policies:
+        - AmazonDynamoDBFullAccess
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt OrdersQueue.QueueName
+    Metadata:
+      Dockerfile: Dockerfile
+      DockerContext: ./src
+      DockerTag: python3.9-v1
+  
+  ProcessFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      FunctionName: !Join ['-', [!Sub '${ProjectName}', 'process']]
+      PackageType: Image
+      ImageConfig:
+        Command:
+          - process.lambda_handler
+      Architectures:
+        - x86_64
+      Policies:
+        - AmazonDynamoDBFullAccess
+        - S3CrudPolicy:
+            BucketName: !Ref OrdersBucket
+      Events:
+        SqsEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt OrdersQueue.Arn
+            BatchSize: 1
+    Metadata:
+      Dockerfile: Dockerfile
+      DockerContext: ./src
+      DockerTag: python3.9-v1
+  GetStatusFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      FunctionName: !Join ['-', [!Sub '${ProjectName}', 'get-status']]
+      PackageType: Image
+      ImageConfig:
+        Command:
+          - get_status.lambda_handler
+      Architectures:
+        - x86_64
+      Policies:
+        - AmazonDynamoDBFullAccess
+        - S3WritePolicy:
+            BucketName: !Ref OrdersBucket
+        - S3ReadPolicy:
+            BucketName: !Ref OrdersBucket
+      Events:
+        GetStatusAPI:
+          Type: Api
+          Properties:
+            Path: /example/get-status
+            Method: get
+    Metadata:
+      Dockerfile: Dockerfile
+      DockerContext: ./src
+      DockerTag: python3.9-v1
+
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  CreateAPI:
+    Description: "API Gateway endpoint URL for Prod stage for Create function"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/example/create"
+  CreateFunction:
+    Description: "Create Lambda Function ARN"
+    Value: !GetAtt CreateFunction.Arn
+  CreateFunctionIamRole:
+    Description: "Implicit IAM Role created for Create function"
+    Value: !GetAtt CreateFunctionRole.Arn
+  OrdersTable:
+    Description: "DynamoDB Table for orders"
+    Value: !GetAtt OrdersTable.Arn
+  OrdersQueue:
+    Description: "SQS Queue for orders"
+    Value: !GetAtt OrdersQueue.Arn
+  ProcessFunction:
+    Description: "Process Lambda Function ARN"
+    Value: !GetAtt ProcessFunction.Arn
+  OrdersBucket:
+    Description: "S3 bucket for Orders"
+    Value: !GetAtt OrdersBucket.Arn
+  GetStatus:
+    Description: "API Gateway endpoint URL for Prod stage for Get Status function"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/example/get-status"
+  GetStatusFunction:
+    Description: "Get Status Lambda Function ARN"
+    Value: !GetAtt GetStatusFunction.Arn
+  GetStatusFunctionIamRole:
+    Description: "Implicit IAM Role created for Get Status function"
+    Value: !GetAtt GetStatusFunctionRole.Arn

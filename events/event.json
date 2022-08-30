@@ -1,0 +1,20 @@
+{
+  "Records": [
+    {
+      "messageId": "2fc6cd1b-544b-452d-bf13-035256a10358",
+      "receiptHandle": "AQEB1xh5E0MulLiCOgW9GdHXdr14bSrCSAGbjl6WToOIVCObaMZfBZCYIqBoNG3aAW4dhubspACLsqtKlYltUkPjzcct38Hkx9GFTuRgkT/tz91Skf029ADYrEt8azHC50S/TjdCNGFMF0pLln4RnUxFqUBqivBuyRXkj/R4khOzXDKK6gT2MNr2rVqHPKNxWkWR7QHMIULCo0Bh4rxG7TtmfFWlvLpy8O1mMTviIj2ajPBS7iYV1bBE6uT2rOWfWKafbcBjwSqUZImBdCUbSTimP414aYMoi2mtDKvgukcb3UBWDA4pDRTNpiK5oNpbfGbL/zJIiifGDTkjFgfHpBPqixP+09bevn2MUGwIKBjoPkSXAf/vf/llniedtkSMjSRDFZCRgLQIeySQ3pkWPPfbAw==",
+      "body": "{ \"request_id\": \"5232634\",  \"url\": \"https://www.google.com/search?q=aws+sqs\"\n}",
+      "attributes": {
+        "ApproximateReceiveCount": "2",
+        "SentTimestamp": "1661096438766",
+        "SenderId": "AIDAX4EAG5Y5I2ZNJ6RNX",
+        "ApproximateFirstReceiveTimestamp": "1661096438771"
+      },
+      "messageAttributes": {},
+      "md5OfBody": "8b2d97573fcd7eeddf89ed10a153cc81",
+      "eventSource": "aws:sqs",
+      "eventSourceARN": "arn:aws:sqs:us-east-2:541434768954:reviews-scraper",
+      "awsRegion": "us-east-2"
+    }
+  ]
+}
