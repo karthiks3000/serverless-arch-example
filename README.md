@@ -1,8 +1,11 @@
 # serverless-arch-example
 
-This project contains source code and supporting files for a serverless application that you can deploy with the SAM CLI. It includes the following files and folders.
+This project contains source code and supporting files for a serverless application that you can deploy with the SAM CLI. Here is the link to the article explaining how to build this architecture - 
+https://medium.com/@karthiks3000/aws-serverless-architecture-with-sam-part-1-7d22203c10bd
 
-- hello_world - Code for the application's Lambda function and Project Dockerfile.
+It includes the following files and folders.
+
+- src - Code for the application's Lambda function and Project Dockerfile.
 - events - Invocation events that you can use to invoke the function.
 - tests - Unit tests for the application code. 
 - template.yaml - A template that defines the application's AWS resources.
@@ -46,14 +49,14 @@ Build your application with the `sam build` command.
 serverless-arch-example$ sam build
 ```
 
-The SAM CLI builds a docker image from a Dockerfile and then installs dependencies defined in `hello_world/requirements.txt` inside the docker image. The processed template file is saved in the `.aws-sam/build` folder.
+The SAM CLI builds a docker image from a Dockerfile and then installs dependencies defined in `src/requirements.txt` inside the docker image. The processed template file is saved in the `.aws-sam/build` folder.
 
 Test a single function by invoking it directly with a test event. An event is a JSON document that represents the input that the function receives from the event source. Test events are included in the `events` folder in this project.
 
 Run functions locally and invoke them with the `sam local invoke` command.
 
 ```bash
-serverless-arch-example$ sam local invoke HelloWorldFunction --event events/event.json
+serverless-arch-example$ sam local invoke ProcessFunction --event events/event.json
 ```
 
 The SAM CLI can also emulate your application's API. Use the `sam local start-api` to run the API locally on port 3000.
@@ -84,7 +87,7 @@ To simplify troubleshooting, SAM CLI has a command called `sam logs`. `sam logs`
 `NOTE`: This command works for all AWS Lambda functions; not just the ones you deploy using SAM.
 
 ```bash
-serverless-arch-example$ sam logs -n HelloWorldFunction --stack-name serverless-arch-example --tail
+serverless-arch-example$ sam logs -n ProcessFunction --stack-name serverless-arch-example --tail
 ```
 
 You can find more information and examples about filtering Lambda function logs in the [SAM CLI Documentation](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-logging.html).
